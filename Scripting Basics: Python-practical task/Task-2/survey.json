@@ -1,0 +1,18 @@
+{
+  "Employee Feedback Survey": {
+    "Work Environment": {
+      "How satisfied are you with your workspace?": {
+        "Description": "Rate your workspace satisfaction",
+        "Answers": ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied"]
+      },
+      "Do you have the tools you need to work effectively?": {
+        "Description": "Availability of tools",
+        "Answers": ["Yes", "No", "Partially"]
+      },
+      "How is communication in your team?": {
+        "Description": "Team communication",
+        "Answers": ["Excellent", "Good", "Average", "Poor"]
+      }
+    }
+  }
+}
