@@ -5,7 +5,8 @@ pipeline {
 
     environment {
 
-        IMAGE_NAME = "localhost:8083/mr/spring-petclinic"
+        NEXUS_URL = "localhost:8083"
+        IMAGE_NAME = "spring-petclinic"
 
     }
 
@@ -13,14 +14,41 @@ pipeline {
     stages {
 
 
-        stage('Checkstyle') {
+        stage('Checkout') {
 
             steps {
 
+                checkout scm
+
+            }
+
+        }
+
+
+
+        stage('Checkstyle') {
+
+            when {
+
+                not {
+
+                    branch 'main'
+
+                }
+
+            }
+
+
+            steps {
+
+
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
+
                     sh '''
-                    ./mvnw checkstyle:checkstyle || true
+
+                    ./mvnw checkstyle:checkstyle
+
                     '''
 
                 }
@@ -31,6 +59,7 @@ pipeline {
             post {
 
                 always {
+
 
                     archiveArtifacts(
                         artifacts: '**/target/checkstyle-result.xml',
@@ -47,11 +76,26 @@ pipeline {
 
         stage('Test') {
 
+
+            when {
+
+                not {
+
+                    branch 'main'
+
+                }
+
+            }
+
+
             steps {
+
 
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
+
                     sh './mvnw test'
+
 
                 }
 
@@ -63,17 +107,33 @@ pipeline {
 
         stage('Build') {
 
+
+            when {
+
+                not {
+
+                    branch 'main'
+
+                }
+
+            }
+
+
             steps {
+
 
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
+
                     sh './mvnw package -DskipTests'
+
 
                 }
 
             }
 
         }
+
 
 
 
@@ -96,16 +156,37 @@ pipeline {
 
 
 
+                        if(env.BRANCH_NAME == 'main') {
+
+
+                            env.DOCKER_IMAGE =
+                            "${NEXUS_URL}/main/${IMAGE_NAME}:latest"
+
+
+                        }
+                        else {
+
+
+                            env.DOCKER_IMAGE =
+                            "${NEXUS_URL}/mr/${IMAGE_NAME}:${commitId}"
+
+
+                        }
+
+
+
                         sh """
+
                         docker build \
                         -f Dockerfile.multi \
-                        -t ${IMAGE_NAME}:${commitId} .
+                        -t ${DOCKER_IMAGE} .
+
+
                         """
 
 
-                        env.IMAGE_TAG = commitId
-
                     }
+
 
                 }
 
@@ -115,38 +196,51 @@ pipeline {
 
 
 
-        stage('Push Docker Image') {
+
+
+        stage('Docker Push') {
 
 
             steps {
 
+
                 withCredentials([
+
                     usernamePassword(
+
                         credentialsId: 'nexus-creds',
-                        usernameVariable: 'NEXUS_USER',
-                        passwordVariable: 'NEXUS_PASS'
+
+                        usernameVariable: 'USERNAME',
+
+                        passwordVariable: 'PASSWORD'
+
                     )
+
                 ]) {
+
 
                     sh """
 
-                    echo \$NEXUS_PASS | docker login localhost:8083 \
-                    -u \$NEXUS_USER \
+                    echo \$PASSWORD | docker login ${NEXUS_URL} \
+                    -u \$USERNAME \
                     --password-stdin
 
 
-                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    docker push ${DOCKER_IMAGE}
+
 
                     """
 
                 }
 
-    }
+
+            }
 
         }
 
 
     }
+
 
 
     post {
@@ -165,6 +259,8 @@ pipeline {
 
         }
 
+
     }
+
 
 }
