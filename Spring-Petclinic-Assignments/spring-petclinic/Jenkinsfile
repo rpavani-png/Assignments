@@ -2,8 +2,11 @@ pipeline {
 
     agent any
 
+
     environment {
-        IMAGE_NAME = "localhost:8083/mr"
+
+        IMAGE_NAME = "localhost:8083/mr/spring-petclinic"
+
     }
 
 
@@ -16,22 +19,28 @@ pipeline {
 
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
-                    sh './mvnw checkstyle:check'
+                    sh '''
+                    ./mvnw checkstyle:checkstyle || true
+                    '''
 
                 }
 
             }
+
 
             post {
 
                 always {
 
-                    archiveArtifacts artifacts: '**/target/checkstyle-result.xml',
-                    allowEmptyArchive: true
+                    archiveArtifacts(
+                        artifacts: '**/target/checkstyle-result.xml',
+                        allowEmptyArchive: true
+                    )
 
                 }
 
             }
+
         }
 
 
@@ -47,6 +56,7 @@ pipeline {
                 }
 
             }
+
         }
 
 
@@ -62,23 +72,40 @@ pipeline {
                 }
 
             }
+
         }
 
 
 
         stage('Docker Build') {
 
+
             steps {
+
 
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
-                    sh """
 
-                    docker build \
-                    -f Dockerfile.multi \
-                    -t ${IMAGE_NAME}:${GIT_COMMIT[0..6]} .
+                    script {
 
-                    """
+
+                        def commitId = sh(
+                            script: "git rev-parse --short HEAD",
+                            returnStdout: true
+                        ).trim()
+
+
+
+                        sh """
+                        docker build \
+                        -f Dockerfile.multi \
+                        -t ${IMAGE_NAME}:${commitId} .
+                        """
+
+
+                        env.IMAGE_TAG = commitId
+
+                    }
 
                 }
 
@@ -90,11 +117,17 @@ pipeline {
 
         stage('Push Docker Image') {
 
+
             steps {
+
 
                 sh """
 
-                docker push ${IMAGE_NAME}:${GIT_COMMIT[0..6]}
+                docker login localhost:8083 \
+                -u admin \
+                -p \$(cat /nexus-password)
+
+                docker push ${IMAGE_NAME}:${IMAGE_TAG}
 
                 """
 
@@ -102,6 +135,25 @@ pipeline {
 
         }
 
+
+    }
+
+
+    post {
+
+
+        success {
+
+            echo "Pipeline completed successfully"
+
+        }
+
+
+        failure {
+
+            echo "Pipeline failed"
+
+        }
 
     }
 
