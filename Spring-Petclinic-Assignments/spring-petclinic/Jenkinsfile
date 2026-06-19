@@ -6,94 +6,97 @@ pipeline {
         IMAGE_NAME = "localhost:8083/mr"
     }
 
+
     stages {
 
+
         stage('Checkstyle') {
+
             steps {
+
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
+
                     sh './mvnw checkstyle:check'
+
                 }
 
-                archiveArtifacts artifacts: '**/target/checkstyle-result.xml',
-                allowEmptyArchive: true
+            }
+
+            post {
+
+                always {
+
+                    archiveArtifacts artifacts: '**/target/checkstyle-result.xml',
+                    allowEmptyArchive: true
+
+                }
+
             }
         }
+
 
 
         stage('Test') {
+
             steps {
+
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
+
                     sh './mvnw test'
+
                 }
+
             }
         }
+
 
 
         stage('Build') {
+
             steps {
+
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
+
                     sh './mvnw package -DskipTests'
+
                 }
+
             }
         }
+
 
 
         stage('Docker Build') {
+
             steps {
+
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
                     sh """
+
                     docker build \
                     -f Dockerfile.multi \
                     -t ${IMAGE_NAME}:${GIT_COMMIT[0..6]} .
-                    """
-                }
-            }
-        }
 
-    }
-}
+                    """
+
+                }
+
+            }
+
+        }
 
 
 
         stage('Push Docker Image') {
 
-
             steps {
 
-                script {
+                sh """
 
+                docker push ${IMAGE_NAME}:${GIT_COMMIT[0..6]}
 
-                    if(env.BRANCH_NAME == 'main') {
-
-
-                        sh """
-
-                        docker tag ${IMAGE_NAME}:${GIT_COMMIT} localhost:8083/${IMAGE_NAME}:latest
-
-                        docker push localhost:8083/${IMAGE_NAME}:latest
-
-                        """
-
-
-                    }
-
-
-                    else {
-
-
-                        sh """
-
-                        docker tag ${IMAGE_NAME}:${GIT_COMMIT} localhost:8084/${IMAGE_NAME}:${GIT_COMMIT}
-
-                        docker push localhost:8084/${IMAGE_NAME}:${GIT_COMMIT}
-
-                        """
-
-
-                    }
-
-                }
+                """
 
             }
 
