@@ -5,7 +5,9 @@ pipeline {
 
     environment {
 
-        NEXUS_URL = "localhost:8082"
+        MAIN_NEXUS = "localhost:8082"
+        MR_NEXUS   = "localhost:8084"
+
         IMAGE_NAME = "spring-petclinic"
 
     }
@@ -43,11 +45,7 @@ pipeline {
 
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
-                    sh '''
-
-                    ./mvnw checkstyle:checkstyle
-
-                    '''
+                    sh './mvnw checkstyle:checkstyle'
 
                 }
 
@@ -130,7 +128,6 @@ pipeline {
 
 
 
-
         stage('Docker Build') {
 
 
@@ -150,25 +147,25 @@ pipeline {
 
 
 
-                        if (env.BRANCH_NAME == 'main') {
+                        if (env.BRANCH_NAME == "main") {
 
 
                             env.DOCKER_IMAGE =
-                            "${NEXUS_URL}/main/${IMAGE_NAME}:latest"
+                            "${MAIN_NEXUS}/main/${IMAGE_NAME}:latest"
 
 
                         } else {
 
 
                             env.DOCKER_IMAGE =
-                            "${NEXUS_URL}/mr/${IMAGE_NAME}:${commitId}"
+                            "${MR_NEXUS}/mr/${IMAGE_NAME}:${commitId}"
 
 
                         }
 
 
 
-                        echo "Docker image: ${DOCKER_IMAGE}"
+                        echo "Building image ${DOCKER_IMAGE}"
 
 
 
@@ -182,7 +179,6 @@ pipeline {
                         """
 
                     }
-
 
                 }
 
@@ -217,7 +213,7 @@ pipeline {
 
                     sh """
 
-                    echo \$PASSWORD | docker login ${NEXUS_URL} \
+                    echo \$PASSWORD | docker login ${env.BRANCH_NAME == 'main' ? MAIN_NEXUS : MR_NEXUS} \
                     -u \$USERNAME \
                     --password-stdin
 
@@ -236,7 +232,6 @@ pipeline {
 
 
     }
-
 
 
 
