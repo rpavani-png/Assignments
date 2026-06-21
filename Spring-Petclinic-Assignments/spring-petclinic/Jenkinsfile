@@ -5,7 +5,7 @@ pipeline {
 
     environment {
 
-        NEXUS_URL = "localhost:8083"
+        NEXUS_URL = "localhost:8082"
         IMAGE_NAME = "spring-petclinic"
 
     }
@@ -41,9 +41,7 @@ pipeline {
 
             steps {
 
-
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
-
 
                     sh '''
 
@@ -60,7 +58,6 @@ pipeline {
 
                 always {
 
-
                     archiveArtifacts(
                         artifacts: '**/target/checkstyle-result.xml',
                         allowEmptyArchive: true
@@ -74,8 +71,8 @@ pipeline {
 
 
 
-        stage('Test') {
 
+        stage('Test') {
 
             when {
 
@@ -90,24 +87,22 @@ pipeline {
 
             steps {
 
-
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
-
                     sh './mvnw test'
-
 
                 }
 
             }
 
         }
+
+
 
 
 
         stage('Build') {
 
-
             when {
 
                 not {
@@ -121,18 +116,17 @@ pipeline {
 
             steps {
 
-
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
-
                     sh './mvnw package -DskipTests'
-
 
                 }
 
             }
 
         }
+
+
 
 
 
@@ -156,15 +150,14 @@ pipeline {
 
 
 
-                        if(env.BRANCH_NAME == 'main') {
+                        if (env.BRANCH_NAME == 'main') {
 
 
                             env.DOCKER_IMAGE =
                             "${NEXUS_URL}/main/${IMAGE_NAME}:latest"
 
 
-                        }
-                        else {
+                        } else {
 
 
                             env.DOCKER_IMAGE =
@@ -172,6 +165,10 @@ pipeline {
 
 
                         }
+
+
+
+                        echo "Docker image: ${DOCKER_IMAGE}"
 
 
 
@@ -183,7 +180,6 @@ pipeline {
 
 
                         """
-
 
                     }
 
@@ -226,6 +222,7 @@ pipeline {
                     --password-stdin
 
 
+
                     docker push ${DOCKER_IMAGE}
 
 
@@ -233,13 +230,13 @@ pipeline {
 
                 }
 
-
             }
 
         }
 
 
     }
+
 
 
 
