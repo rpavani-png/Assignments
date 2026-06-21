@@ -6,7 +6,7 @@ pipeline {
     environment {
 
         MAIN_NEXUS = "localhost:8082"
-        MR_NEXUS   = "localhost:8084"
+        MR_NEXUS = "localhost:8084"
 
         IMAGE_NAME = "spring-petclinic"
 
@@ -30,6 +30,7 @@ pipeline {
 
         stage('Checkstyle') {
 
+
             when {
 
                 not {
@@ -43,9 +44,15 @@ pipeline {
 
             steps {
 
+
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
-                    sh './mvnw checkstyle:checkstyle'
+
+                    sh '''
+
+                    ./mvnw checkstyle:checkstyle
+
+                    '''
 
                 }
 
@@ -54,12 +61,15 @@ pipeline {
 
             post {
 
+
                 always {
+
 
                     archiveArtifacts(
                         artifacts: '**/target/checkstyle-result.xml',
                         allowEmptyArchive: true
                     )
+
 
                 }
 
@@ -72,6 +82,7 @@ pipeline {
 
         stage('Test') {
 
+
             when {
 
                 not {
@@ -85,9 +96,12 @@ pipeline {
 
             steps {
 
+
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
+
                     sh './mvnw test'
+
 
                 }
 
@@ -101,6 +115,7 @@ pipeline {
 
         stage('Build') {
 
+
             when {
 
                 not {
@@ -114,9 +129,12 @@ pipeline {
 
             steps {
 
+
                 dir('Spring-Petclinic-Assignments/spring-petclinic') {
 
+
                     sh './mvnw package -DskipTests'
+
 
                 }
 
@@ -147,25 +165,22 @@ pipeline {
 
 
 
-                        if (env.BRANCH_NAME == "main") {
+                        if(env.BRANCH_NAME == "main") {
 
 
                             env.DOCKER_IMAGE =
-                            "${MAIN_NEXUS}/main/${IMAGE_NAME}:latest"
-
-
-                        } else {
-
-
-                            env.DOCKER_IMAGE =
-                            "${MR_NEXUS}/mr/${IMAGE_NAME}:${commitId}"
+                            "${MAIN_NEXUS}/${IMAGE_NAME}:latest"
 
 
                         }
+                        else {
 
 
+                            env.DOCKER_IMAGE =
+                            "${MR_NEXUS}/${IMAGE_NAME}:${commitId}"
 
-                        echo "Building image ${DOCKER_IMAGE}"
+
+                        }
 
 
 
@@ -178,6 +193,7 @@ pipeline {
 
                         """
 
+
                     }
 
                 }
@@ -185,7 +201,6 @@ pipeline {
             }
 
         }
-
 
 
 
@@ -213,7 +228,8 @@ pipeline {
 
                     sh """
 
-                    echo \$PASSWORD | docker login ${env.BRANCH_NAME == 'main' ? MAIN_NEXUS : MR_NEXUS} \
+
+                    echo \$PASSWORD | docker login ${BRANCH_NAME == 'main' ? MAIN_NEXUS : MR_NEXUS} \
                     -u \$USERNAME \
                     --password-stdin
 
@@ -222,16 +238,21 @@ pipeline {
                     docker push ${DOCKER_IMAGE}
 
 
+
                     """
 
+
                 }
+
 
             }
 
         }
 
 
+
     }
+
 
 
 
