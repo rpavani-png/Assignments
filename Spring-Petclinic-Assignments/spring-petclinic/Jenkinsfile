@@ -205,49 +205,42 @@ pipeline {
 
 
 
-        stage('Docker Push') {
+stage('Docker Push') {
+
+    steps {
+
+        withCredentials([
+
+            usernamePassword(
+
+                credentialsId: 'nexus-creds',
+
+                usernameVariable: 'USERNAME',
+
+                passwordVariable: 'PASSWORD'
+
+            )
+
+        ]) {
 
 
-            steps {
+            sh """
+
+            echo \$PASSWORD | docker login localhost:8084 \
+            -u \$USERNAME \
+            --password-stdin
 
 
-                withCredentials([
-
-                    usernamePassword(
-
-                        credentialsId: 'nexus-creds',
-
-                        usernameVariable: 'USERNAME',
-
-                        passwordVariable: 'PASSWORD'
-
-                    )
-
-                ]) {
+            docker push ${DOCKER_IMAGE}
 
 
-                    sh """
-
-
-                    echo \$PASSWORD | docker login ${BRANCH_NAME == 'main' ? MAIN_NEXUS : MR_NEXUS} \
-                    -u \$USERNAME \
-                    --password-stdin
-
-
-
-                    docker push ${DOCKER_IMAGE}
-
-
-
-                    """
-
-
-                }
-
-
-            }
+            """
 
         }
+
+    }
+
+}
 
 
 
