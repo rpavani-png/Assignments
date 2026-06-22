@@ -206,40 +206,27 @@ pipeline {
 
 
 stage('Docker Push') {
-
     steps {
-
         withCredentials([
-
             usernamePassword(
-
                 credentialsId: 'nexus-creds',
-
                 usernameVariable: 'USERNAME',
-
                 passwordVariable: 'PASSWORD'
-
             )
-
         ]) {
+            script {
+                def nexusRegistry = env.BRANCH_NAME == "main" ? env.MAIN_NEXUS : env.MR_NEXUS
 
+                sh """
+                    echo \$PASSWORD | docker login ${nexusRegistry} \
+                    -u \$USERNAME \
+                    --password-stdin
 
-            sh """
-
-            echo \$PASSWORD | docker login localhost:8084 \
-            -u \$USERNAME \
-            --password-stdin
-
-
-            docker push ${DOCKER_IMAGE}
-
-
-            """
-
+                    docker push ${env.DOCKER_IMAGE}
+                """
+            }
         }
-
     }
-
 }
 
 
