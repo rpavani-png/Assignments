@@ -1,0 +1,44 @@
+---
+- name: Deploy Spring Petclinic Application
+  hosts: app_servers
+  become: true
+
+  vars_files:
+    - vars.yml
+
+  tasks:
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Login to Nexus Docker Registry
+      shell: |
+        echo "{{ nexus_password }}" | docker login {{ nexus_registry }} \
+        -u "{{ nexus_username }}" \
+        --password-stdin
+
+    - name: Pull Spring Petclinic Image
+      shell: |
+        docker pull {{ docker_image }}
+
+    - name: Stop existing container
+      shell: |
+        docker stop spring-petclinic || true
+        docker rm spring-petclinic || true
+
+    - name: Run Spring Petclinic Container
+      shell: |
+        docker run -d \
+          --name spring-petclinic \
+          -p 8080:8080 \
+          {{ docker_image }}
+
+    - name: Verify container is running
+      shell: docker ps
+      register: docker_output
+
+    - debug:
+        var: docker_output.stdout_lines

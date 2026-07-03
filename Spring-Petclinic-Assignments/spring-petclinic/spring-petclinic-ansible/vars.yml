@@ -1,0 +1,8 @@
+---
+nexus_registry: "host.docker.internal:8084"
+
+nexus_username: "admin"
+
+nexus_password: "YOUR_NEXUS_PASSWORD"
+
+docker_image: "host.docker.internal:8084/mr/spring-petclinic:967342a"
