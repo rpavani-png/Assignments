@@ -1,0 +1,6 @@
+# AWS region where resources will be deployed
+aws_region = "us-east-1"
+
+# The CIDR block allowed to access the external Application Load Balancer.
+# Replace this with your specific IP range (e.g. "203.0.113.50/32") for better security.
+allowed_ip_range = "0.0.0.0/0"

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Terraform Practical</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #111827;
+            color: #fff;
+            font-family: system-ui, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .card {
+            background: #1f2937;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+        }
+
+        .card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            display: block;
+            cursor: pointer;
+            transition: transform .25s ease;
+        }
+
+        .card img:hover {
+            transform: scale(1.03);
+        }
+
+        .filename {
+            padding: 12px;
+            text-align: center;
+            color: #e5e7eb;
+            font-size: 14px;
+            word-break: break-word;
+            background: #0f172a;
+        }
+
+        .viewer {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .viewer.active {
+            display: flex;
+        }
+
+        .viewer img {
+            max-width: 95%;
+            max-height: 95%;
+            border-radius: 10px;
+        }
+
+        .close {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            font-size: 40px;
+            cursor: pointer;
+            color: white;
+            user-select: none;
+        }
+
+        .message {
+            text-align: center;
+            padding: 30px;
+            color: #d1d5db;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Infrastructure management with
+        Terraform</h1>
+
+    <div id="gallery" class="gallery"></div>
+
+    <div id="viewer" class="viewer">
+        <span class="close">&times;</span>
+        <img id="preview" alt="">
+    </div>
+
+    <script>
+        const gallery = document.getElementById("gallery");
+        const viewer = document.getElementById("viewer");
+        const preview = document.getElementById("preview");
+
+        async function loadImages() {
+            // Fallback list of images to use when directory listing is disabled (e.g., when deployed)
+            let imageFiles = [
+                "ami_bcd.png",
+                "asgs.png",
+                "ec2_instances_3.png",
+                "igw.png",
+                "lbs_external.png",
+                "nacls.png",
+                "s3_bucket.png",
+                "sgs.png",
+                "subnets_01_02.png",
+                "target_groups.png",
+                "test-01-114.png",
+                "test-02-54.png",
+                "test-03-235.png",
+                "vpc_747.png"
+            ];
+
+            // Only try to fetch directory listing if we are running locally (localhost, 127.0.0.1, local network IP, or file://).
+            // On deployed platforms (like GitHub Pages), directory listing is disabled, so we skip the fetch and use the fallback list.
+            const isLocal = window.location.hostname === "localhost" ||
+                window.location.hostname === "127.0.0.1" ||
+                window.location.hostname.startsWith("192.168.") ||
+                window.location.hostname.startsWith("10.") ||
+                window.location.hostname.startsWith("172.") ||
+                window.location.protocol === "file:";
+
+            if (isLocal) {
+                try {
+                    // Try to dynamically fetch directory listing (works in local development servers with directory listing enabled)
+                    const response = await fetch("./img/");
+                    if (response.ok) {
+                        const html = await response.text();
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, "text/html");
+                        const links = [...doc.querySelectorAll("a")];
+                        const fetchedFiles = links
+                            .map(a => {
+                                const href = a.getAttribute("href");
+                                if (!href) return null;
+                                const decoded = decodeURIComponent(href);
+                                return decoded.split("/").pop();
+                            })
+                            .filter(filename =>
+                                filename &&
+                                /\.(jpg|jpeg|png|gif|webp|avif|bmp|svg)$/i.test(filename)
+                            );
+
+                        if (fetchedFiles.length > 0) {
+                            imageFiles = [...new Set(fetchedFiles)];
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Directory listing fetch failed, using fallback static image list:", err);
+                }
+            }
+
+            if (!imageFiles.length) {
+                gallery.innerHTML =
+                    '<div class="message">No images found in the img folder.</div>';
+                return;
+            }
+
+            imageFiles.sort((a, b) => a.localeCompare(b));
+
+            const fragment = document.createDocumentFragment();
+
+            imageFiles.forEach(file => {
+                let imageUrl;
+
+                if (/^https?:\/\//i.test(file)) {
+                    imageUrl = file;
+                }
+                else if (file.startsWith("/")) {
+                    imageUrl = file;
+                }
+                else if (file.startsWith("./")) {
+                    imageUrl = "img/" + file.replace("./", "");
+                }
+                else {
+                    imageUrl = "img/" + file;
+                }
+
+                const card = document.createElement("div");
+                card.className = "card";
+
+                const img = document.createElement("img");
+                img.loading = "lazy";
+                img.decoding = "async";
+                img.src = encodeURI(imageUrl);
+                img.alt = file;
+
+                const name = document.createElement("div");
+                name.className = "filename";
+                name.textContent = file.split("/").pop();
+
+                img.onclick = () => {
+                    preview.src = img.src;
+                    viewer.classList.add("active");
+                };
+
+                img.onerror = () => {
+                    console.error("Failed to load:", imageUrl);
+                    img.style.display = "none";
+                    const errorMsg = document.createElement("div");
+                    errorMsg.style.padding = "20px";
+                    errorMsg.style.color = "#ef4444";
+                    errorMsg.style.fontSize = "12px";
+                    errorMsg.style.textAlign = "center";
+                    errorMsg.textContent = `Failed to load: ${file}`;
+                    card.appendChild(errorMsg);
+                };
+
+                card.appendChild(img);
+                card.appendChild(name);
+
+                fragment.appendChild(card);
+            });
+
+            gallery.innerHTML = ""; // Clear loader/previous messages if any
+            gallery.appendChild(fragment);
+        }
+
+        document.querySelector(".close").onclick = () => {
+            viewer.classList.remove("active");
+        };
+
+        viewer.onclick = (e) => {
+            if (e.target === viewer) {
+                viewer.classList.remove("active");
+            }
+        };
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                viewer.classList.remove("active");
+            }
+        });
+
+        loadImages();
+    </script>
+
+</body>
+
+</html>
